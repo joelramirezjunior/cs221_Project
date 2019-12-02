@@ -3,7 +3,7 @@
 
 # In[1]:
 
-
+from metrics import *
 import mido
 import os
 import glob
@@ -115,14 +115,16 @@ def baseline_model(dummy_y, n_prev):
     # create model
     model = Sequential()
 
-    # put in this Dense 128, but it could be easily removed.
-    model.add(Dense(128, input_dim=n_prev, activation='relu'))
+    # put in this Dense 124, but it could be easily removed.
+    model.add(Dense(124, input_dim=n_prev, activation='relu'))
+    model.add(Dense(124, input_dim=n_prev, activation='relu'))
+    model.add(Dense(64, input_dim=n_prev, activation='relu'))
     model.add(Dense(64, input_dim=n_prev, activation='relu'))
     model.add(Dense(len(dummy_y[0]), activation='softmax'))
 
     # Compile model
     # Here we use a really small learning rate becuase a larger one will not converge at all
-    sgd = optimizers.SGD(lr=0.00001, decay=1e-6, momentum=0.9, nesterov=True)
+    sgd = optimizers.SGD(lr=0.000001, decay=1e-6, momentum=0.9, nesterov=True)
     model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['accuracy'])
     return model
 
@@ -221,7 +223,7 @@ def createSongUsedToPredict(prediction_notes, key):
         test_track.append(msg)
     test_mid.tracks.append(test_track)
     key = grabName(key)
-    test_mid.save('predicted/predicted_song_%s.mid' %key)
+    test_mid.save('predicted/%s.mid' %key)
 
 
 # In[12]:
@@ -232,7 +234,7 @@ def createSongUsedToPredict(prediction_notes, key):
 nprev = 4
 
 # how many iterations do you want?
-numIteration = 200
+numIteration = 10
 
 allMidiFile = geMidiFileAndTest()
 training_notes, prediction_notes = getNotes(allMidiFile)
@@ -242,4 +244,7 @@ model = runModel(dummy_y, sequences, nprev, numIteration)
 predictions, class_labels, class_labels_min, final_labels, keys = makePrediction(y, prediction_notes, nprev, model)
 for key in keys:
     createPredictedSong(final_labels, key)
-    createSongUsedToPredict(prediction_notes, key)                                 
+    createSongUsedToPredict(prediction_notes, key)     
+
+stats()                            
+
