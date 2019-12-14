@@ -23,6 +23,12 @@ from sklearn.model_selection import KFold
 from tensorflow.keras import optimizers
 from random import randint 
 import numpy as np
+from sklearn.metrics import confusion_matrix
+import matplotlib.pyplot as plt
+
+import seaborn as sn
+import pandas as pd
+import matplotlib.pyplot as plt
 
 
 # In[2]:
@@ -86,9 +92,13 @@ def prepareSequences(n_prev, training_notes):
     
     # save a seed to do prediction later
     # this will grab all elements up to the 301st to last
-    sequence_test = sequences[-300:]
-    sequences = np.asarray(sequences[:-300])
-    y = y[:-300]
+    print("seq", len(sequences))
+    sequence_test = sequences[-300:][600:]
+    sequences = np.asarray(sequences[:-300][600:])
+    y = y[:-300][600:]
+    # sequence_test = sequences[-300:]
+    # sequences = np.asarray(sequences[:-300])
+    # y = y[:-300]
 
     return sequences, sequence_test, y
 
@@ -112,6 +122,7 @@ def encondeClassValues(y):
 
 # define baseline model
 def baseline_model(dummy_y, n_prev):
+    print("Dummy_y, n_prev", len(dummy_y[0]), n_prev)
     # create model
     model = Sequential()
 
@@ -134,12 +145,17 @@ def baseline_model(dummy_y, n_prev):
 
 def runModel(dummy_y, sequences, nprev, numIteration ):
     model = baseline_model(dummy_y, nprev)
-    model.fit(sequences, dummy_y, 32, numIteration, verbose=1)
+    history = model.fit(sequences, dummy_y, 32, numIteration, verbose=1)
+    # comment out if you would like to plot loss
+    # plt.plot(history.history['loss'])
+    # plt.title('Model loss')
+    # plt.ylabel('Loss')
+    # plt.xlabel('Epoch')
+    # plt.legend(['Train'], loc='upper left')
     return model
 
 
 # In[9]:
-
 
 def makePrediction(y, prediction_notes, n_prev, model):
 
@@ -160,6 +176,7 @@ def makePrediction(y, prediction_notes, n_prev, model):
         sequence = prediction_notes[key]
         for i in range(len(sequence)-n_prev):
             sequenced_test_notes.append(sequence[i:i+n_prev])
+
 
         # results based on song
         prediction = model.predict(np.array(sequenced_test_notes))
@@ -227,14 +244,21 @@ def createSongUsedToPredict(prediction_notes, key):
 
 
 # In[12]:
+def plot_confusion_matrix(prediction_notes, final_labels, key):
+    matrix = confusion_matrix(prediction_notes[key][10:150],
+                              final_labels[key][10:150])
+    df_cm = pd.DataFrame(matrix)
+    plt.title(key)
+    fig, ax = plt.subplots(figsize=(160, 10))
+    sn.heatmap(df_cm, annot=True, linewidths=0.25, ax=ax)
 
 
 # here are all the function calls
 # what do you want the sequence length to be?
 nprev = 4
 
-# how many iterations do you want?
-numIteration = 10
+# how many iterations do you want? (epochs)
+numIteration = 100
 
 allMidiFile = geMidiFileAndTest()
 training_notes, prediction_notes = getNotes(allMidiFile)
@@ -242,9 +266,15 @@ sequences, sequence_test, y = prepareSequences(nprev, training_notes)
 encoder, encoded_Y, dummy_y = encondeClassValues(y)
 model = runModel(dummy_y, sequences, nprev, numIteration)
 predictions, class_labels, class_labels_min, final_labels, keys = makePrediction(y, prediction_notes, nprev, model)
+
 for key in keys:
     createPredictedSong(final_labels, key)
-    createSongUsedToPredict(prediction_notes, key)     
+    createSongUsedToPredict(prediction_notes, key)
+    # comment out if you would like to plot the confusion matrix
+    #plot_confusion_matrix(prediction_notes, final_labels, key)
 
-stats()                            
+stats()
+
+plt.show()
+
 
